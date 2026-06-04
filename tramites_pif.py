@@ -680,13 +680,29 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ========== ARRANQUE DEL BOT ==========
 
 def main():
-    app = Application.builder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, cualquier_texto))
-    app.add_handler(CallbackQueryHandler(callback_handler))
-    print("✅ Bot funcionando correctamente...")
-    print("📋 Todas las categorías y subcategorías están configuradas con los textos del documento")
-    app.run_polling()
-
-if __name__ == '__main__':
-    main()
+    # Para Python 3.14+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    
+    if loop and loop.is_running():
+        # Si ya hay un loop corriendo, creamos una tarea
+        app = Application.builder().token(TOKEN).build()
+        app.add_handler(CommandHandler("start", start))
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, cualquier_texto))
+        app.add_handler(CallbackQueryHandler(callback_handler))
+        
+        async def run():
+            await app.initialize()
+            await app.updater.start_polling()
+            await app.idle()
+        
+        asyncio.create_task(run())
+    else:
+        # Método tradicional
+        app = Application.builder().token(TOKEN).build()
+        app.add_handler(CommandHandler("start", start))
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, cualquier_texto))
+        app.add_handler(CallbackQueryHandler(callback_handler))
+        app.run_polling()
