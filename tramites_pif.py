@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
@@ -679,30 +680,40 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== ARRANQUE DEL BOT ==========
 
+
+
 def main():
-    # Para Python 3.14+
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
+    """Inicia el bot con manejo de eventos para Python 3.14"""
     
-    if loop and loop.is_running():
-        # Si ya hay un loop corriendo, creamos una tarea
-        app = Application.builder().token(TOKEN).build()
-        app.add_handler(CommandHandler("start", start))
-        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, cualquier_texto))
-        app.add_handler(CallbackQueryHandler(callback_handler))
+    # Crear la aplicación
+    app = Application.builder().token(TOKEN).build()
+    
+    # Añadir los handlers
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, cualquier_texto))
+    app.add_handler(CallbackQueryHandler(callback_handler))
+    
+    # Para Python 3.14 en Render
+    if sys.version_info >= (3, 14):
+        # Usar el método asyncio.run() que maneja correctamente el loop
+        async def run_bot():
+            try:
+                await app.initialize()
+                await app.updater.start_polling()
+                print("✅ Bot iniciado correctamente en Python 3.14")
+                # Mantener el bot corriendo
+                while True:
+                    await asyncio.sleep(1)
+            except KeyboardInterrupt:
+                print("🛑 Bot detenido manualmente")
+            finally:
+                await app.updater.stop()
+                await app.shutdown()
         
-        async def run():
-            await app.initialize()
-            await app.updater.start_polling()
-            await app.idle()
-        
-        asyncio.create_task(run())
+        asyncio.run(run_bot())
     else:
-        # Método tradicional
-        app = Application.builder().token(TOKEN).build()
-        app.add_handler(CommandHandler("start", start))
-        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, cualquier_texto))
-        app.add_handler(CallbackQueryHandler(callback_handler))
+        # Versión tradicional para Python más antiguos
         app.run_polling()
+
+if __name__ == '__main__':
+    main()
